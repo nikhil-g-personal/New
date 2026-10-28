@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>DesiFit PWA - Gym & Diet Companion</title>
+  <!-- PWA Manifest inline -->
+  <link rel="manifest" href='data:application/manifest+json,{"name":"DesiFit PWA","short_name":"DesiFit","start_url":".","display":"standalone","background_color":"#0f172a","theme_color":"#1e293b","icons":[{"src":"https://cdn-icons-png.flaticon.com/512/2964/2964514.png","sizes":"512x512","type":"image/png"}]}'>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.1/dist/umd/lucide.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { -webkit-tap-highlight-color: transparent; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .glass-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.08); }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col pb-24 select-none">
+
+  <!-- TOP HEADER -->
+  <header class="bg-slate-900/90 border-b border-slate-800 p-4 sticky top-0 z-40 flex justify-between items-center backdrop-blur-md">
+    <div class="flex items-center gap-2">
+      <div class="p-2 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-xl text-slate-950 font-black">
+        <i data-lucide="flame" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <h1 class="text-base font-bold text-white tracking-tight">DesiFit Tracker</h1>
+        <p class="text-[10px] text-slate-400">Target: 155g Protein • 5-Day PPL</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <div class="px-2.5 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full flex items-center gap-1">
+        <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400"></i>
+        <span id="streak-counter" class="text-xs font-bold text-amber-400">1 Day</span>
+      </div>
+      <button onclick="openModal('custom-food-modal')" class="p-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/20 text-xs font-medium flex items-center gap-1 transition">
+        <i data-lucide="plus" class="w-4 h-4"></i> Food
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN APP CONTAINER -->
+  <main id="app-container" class="flex-1 p-4 max-w-md mx-auto w-full space-y-4">
+
+    <!-- TAB 1: DASHBOARD -->
+    <section id="tab-dashboard" class="tab-view space-y-4">
+      <!-- Protein Progress Card -->
+      <div class="glass-card rounded-2xl p-4 space-y-3 relative overflow-hidden">
+        <div class="flex justify-between items-start">
+          <div>
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Today's Nutrition</span>
+            <div class="flex items-baseline gap-2 mt-1">
+              <span id="dash-protein-num" class="text-3xl font-black text-emerald-400">0</span>
+              <span class="text-xs text-slate-400">/ 155g Protein</span>
+            </div>
+          </div>
+          <div class="text-right">
+            <span id="dash-cal-num" class="text-xl font-bold text-slate-200">0</span>
+            <span class="text-[10px] text-slate-400 block">/ 2100 kcal</span>
+          </div>
+        </div>
+
+        <!-- Protein Bar -->
+        <div class="w-full bg-slate-800 rounded-full h-3 overflow-hidden border border-slate-700/50">
+          <div id="dash-protein-bar" class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-500 w-0"></div>
+        </div>
+
+        <!-- Quick Macro Badges -->
+        <div class="grid grid-cols-3 gap-2 pt-1 text-center text-xs">
+          <div class="bg-slate-900/60 p-2 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block">Carbs</span>
+            <span id="dash-carbs" class="font-bold text-amber-400">0g</span>
+          </div>
+          <div class="bg-slate-900/60 p-2 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block">Fats</span>
+            <span id="dash-fats" class="font-bold text-indigo-400">0g</span>
+          </div>
+          <div class="bg-slate-900/60 p-2 rounded-xl border border-slate-800">
+            <span class="text-[10px] text-slate-400 block">Water Intake</span>
+            <span id="dash-water" class="font-bold text-blue-400">1.5 L</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Gym Status -->
+      <div class="glass-card rounded-2xl p-4 flex items-center justify-between border-l-4 border-l-blue-500">
+        <div>
+          <span class="text-[10px] font-bold tracking-wider text-blue-400 uppercase">Today's Workout</span>
+          <h3 id="dash-workout-name" class="text-sm font-bold text-white mt-0.5">Push Day + Core Focus</h3>
+          <p class="text-xs text-slate-400 mt-0.5">4 Chest/Shoulder Exercises • 5-min Warm-up</p>
+        </div>
+        <button onclick="switchTab('workouts')" class="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold flex items-center gap-1 transition">
+          Start <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
+
+      <!-- Dynamic Warm-Up Quick Card -->
+      <div class="bg-amber-950/30 border border-amber-500/30 rounded-2xl p-4 space-y-2">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+            <i data-lucide="activity" class="w-4 h-4"></i> Morning Warm-up Routine
+          </h3>
+          <span class="text-[10px] text-amber-300/70">5-7 Mins</span>
+        </div>
+        <div class="grid grid-cols-2 gap-1.5 text-xs text-slate-300">
+          <div class="flex items-center gap-1.5 bg-slate-900/50 p-2 rounded-lg">
+            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-amber-400"></i> Arm Circles & Swings
+          </div>
+          <div class="flex items-center gap-1.5 bg-slate-900/50 p-2 rounded-lg">
+            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-amber-400"></i> Cat-Cow Stretch
+          </div>
+          <div class="flex items-center gap-1.5 bg-slate-900/50 p-2 rounded-lg">
+            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-amber-400"></i> World's Greatest Stretch
+          </div>
+          <div class="flex items-center gap-1.5 bg-slate-900/50 p-2 rounded-lg">
+            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-amber-400"></i> Bodyweight Squats
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: DIET & MEAL PLANNER -->
+    <section id="tab-diet" class="tab-view hidden space-y-4">
+      <!-- Day Selector Carousel -->
+      <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+        <button onclick="setDietDay(1)" id="diet-day-1" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap bg-emerald-600 text-white">Day 1 (Non-Veg)</button>
+        <button onclick="setDietDay(2)" id="diet-day-2" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-400 border border-slate-700">Day 2 (Veg)</button>
+        <button onclick="setDietDay(3)" id="diet-day-3" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-400 border border-slate-700">Day 3 (Non-Veg)</button>
+        <button onclick="setDietDay(4)" id="diet-day-4" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-400 border border-slate-700">Day 4 (Veg)</button>
+        <button onclick="setDietDay(5)" id="diet-day-5" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-400 border border-slate-700">Day 5 (Non-Veg)</button>
+        <button onclick="setDietDay(6)" id="diet-day-6" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-400 border border-slate-700">Day 6 (Flex)</button>
+        <button onclick="setDietDay(7)" id="diet-day-7" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-400 border border-slate-700">Day 7 (Prep)</button>
+      </div>
+
+      <!-- Meal Summary Banner -->
+      <div class="glass-card rounded-2xl p-3 flex justify-between items-center text-xs">
+        <div>
+          <span class="text-slate-400 block text-[10px]">Active Diet Target</span>
+          <span class="font-bold text-emerald-400">155g Protein • No Curd / No Yogurt</span>
+        </div>
+        <button onclick="openModal('custom-food-modal')" class="px-2.5 py-1.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg font-semibold flex items-center gap-1">
+          <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Custom Meal
+        </button>
+      </div>
+
+      <!-- Meals List Container -->
+      <div id="meals-list-container" class="space-y-3">
+        <!-- Rendered via JS -->
+      </div>
+    </section>
+
+    <!-- TAB 3: WORKOUTS -->
+    <section id="tab-workouts" class="tab-view hidden space-y-4">
+      <!-- Workout Day Switcher -->
+      <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+        <button onclick="setWorkoutSplit('push1')" id="split-push1" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap bg-blue-600 text-white">Push A</button>
+        <button onclick="setWorkoutSplit('pull1')" id="split-pull1" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-400 border border-slate-700">Pull A</button>
+        <button onclick="setWorkoutSplit('legs')" id="split-legs" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-400 border border-slate-700">Legs</button>
+        <button onclick="setWorkoutSplit('push2')" id="split-push2" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-400 border border-slate-700">Push B</button>
+        <button onclick="setWorkoutSplit('pull2')" id="split-pull2" class="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-400 border border-slate-700">Pull B</button>
+      </div>
+
+      <!-- Rest Timer Component -->
+      <div class="glass-card p-3 rounded-2xl flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i data-lucide="timer" class="w-5 h-5 text-indigo-400"></i>
+          <div>
+            <span class="text-[10px] text-slate-400 block">Rest Timer</span>
+            <span id="timer-display" class="text-base font-mono font-bold text-slate-200">01:30</span>
+          </div>
+        </div>
+        <div class="flex gap-1.5">
+          <button onclick="startTimer(60)" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg border border-slate-700 font-semibold">60s</button>
+          <button onclick="startTimer(90)" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs rounded-lg font-semibold">90s</button>
+          <button onclick="stopTimer()" class="p-1.5 bg-slate-800 text-slate-400 rounded-lg"><i data-lucide="square" class="w-3.5 h-3.5"></i></button>
+        </div>
+      </div>
+
+      <!-- Exercises Container -->
+      <div id="workout-container" class="space-y-3">
+        <!-- Rendered via JS -->
+      </div>
+    </section>
+
+    <!-- TAB 4: PROGRESS & LOGS -->
+    <section id="tab-progress" class="tab-view hidden space-y-4">
+      <div class="glass-card p-4 rounded-2xl space-y-3">
+        <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+          <i data-lucide="scale" class="w-4 h-4 text-emerald-400"></i> Log Weight & Stamina
+        </h3>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[10px] text-slate-400 block mb-1">Body Weight (kg)</label>
+            <input type="number" id="input-weight" placeholder="e.g. 78.5" step="0.1" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 block mb-1">Cardio / Treadmill (mins)</label>
+            <input type="number" id="input-cardio" placeholder="e.g. 15" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+          </div>
+        </div>
+        <button onclick="saveProgressEntry()" class="w-full bg-emerald-600 hover:bg-emerald-500 font-semibold text-xs py-2.5 rounded-xl transition text-white">
+          Save Metric
+        </button>
+      </div>
+
+      <!-- History Log Card -->
+      <div class="glass-card p-4 rounded-2xl space-y-2">
+        <h3 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Logged Metrics History</h3>
+        <div id="progress-history" class="space-y-2 text-xs max-h-60 overflow-y-auto no-scrollbar">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- CUSTOM FOOD MODAL -->
+  <div id="custom-food-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 max-w-sm w-full space-y-3">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+        <h3 class="text-sm font-bold text-white">Add Custom Food Item</h3>
+        <button onclick="closeModal('custom-food-modal')" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+      <div class="space-y-2">
+        <div>
+          <label class="text-[10px] text-slate-400 block mb-1">Food Name</label>
+          <input type="text" id="custom-name" placeholder="e.g. Protein Shake / Soya Chunks" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[10px] text-slate-400 block mb-1">Protein (g)</label>
+            <input type="number" id="custom-protein" placeholder="25" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white focus:outline-none">
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 block mb-1">Calories (kcal)</label>
+            <input type="number" id="custom-cal" placeholder="200" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-xs text-white focus:outline-none">
+          </div>
+        </div>
+      </div>
+      <button onclick="addCustomFood()" class="w-full bg-emerald-600 hover:bg-emerald-500 font-semibold text-xs py-2.5 rounded-xl transition text-white">
+        Add & Log Meal
+      </button>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAVIGATION BAR -->
+  <nav class="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur border-t border-slate-800/80 flex justify-around py-3 z-40">
+    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="flex flex-col items-center gap-1 text-emerald-400">
+      <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+      <span class="text-[10px] font-medium">Dashboard</span>
+    </button>
+    <button onclick="switchTab('diet')" id="nav-diet" class="flex flex-col items-center gap-1 text-slate-400">
+      <i data-lucide="utensils" class="w-5 h-5"></i>
+      <span class="text-[10px] font-medium">Desi Diet</span>
+    </button>
+    <button onclick="switchTab('workouts')" id="nav-workouts" class="flex flex-col items-center gap-1 text-slate-400">
+      <i data-lucide="dumbbell" class="w-5 h-5"></i>
+      <span class="text-[10px] font-medium">Workouts</span>
+    </button>
+    <button onclick="switchTab('progress')" id="nav-progress" class="flex flex-col items-center gap-1 text-slate-400">
+      <i data-lucide="line-chart" class="w-5 h-5"></i>
+      <span class="text-[10px] font-medium">Progress</span>
+    </button>
+  </nav>
+
+  <!-- JAVASCRIPT APP LOGIC -->
+  <script>
+    // 7-Day Indian High Protein Meal Plan (~155g Protein, 0 curd/yogurt, 2 Veg Days, NO Fish)
+    const indianMealPlans = {
+      1: [
+        { id: "d1m1", title: "Breakfast: Masala Egg Bhurji & Toast", detail: "2 whole eggs + 1/2 cup liquid egg whites, onions, tomatoes + 2 brown toast", p: 35, cal: 450, c: 38, f: 14 },
+        { id: "d1m2", title: "Mid-Morning: Whey Protein Shake", detail: "1 Scoop Whey in water / almond milk", p: 25, cal: 130, c: 3, f: 2 },
+        { id: "d1m3", title: "Lunch: Tandoori Chicken Breast & Quinoa", detail: "150g seared chicken breast + pre-cooked quinoa + cucumber salad", p: 42, cal: 480, c: 45, f: 10 },
+        { id: "d1m4", title: "Evening Snack: Low-Fat Paneer Cubes", detail: "100g low-fat paneer tossed in chaat masala & lemon", p: 18, cal: 180, c: 4, f: 8 },
+        { id: "d1m5", title: "Dinner: Chicken Keema & Brown Rice", detail: "150g lean chicken keema with green peas + brown rice pouch", p: 40, cal: 510, c: 50, f: 12 }
+      ],
+      2: [ // Vegetarian Day
+        { id: "d2m1", title: "Breakfast: Savory Masala Oats & Milk", detail: "Oats with veggies & spices + 1 glass ultra-filtered milk", p: 28, cal: 410, c: 52, f: 8 },
+        { id: "d2m2", title: "Mid-Morning: Plant / Whey Shake", detail: "1 Scoop Whey Protein + 1 tbsp peanut butter", p: 30, cal: 220, c: 6, f: 9 },
+        { id: "d2m3", title: "Lunch: High-Protein Chana Chaat", detail: "1.5 cups boiled chickpeas, diced onions, tomatoes, chaat masala", p: 26, cal: 420, c: 58, f: 7 },
+        { id: "d2m4", title: "Evening Snack: Sprouted Moong Salad", detail: "1 cup sprouted moong with lemon juice & green chili", p: 15, cal: 150, c: 24, f: 1 },
+        { id: "d2m5", title: "Dinner: Spicy Tofu Bhurji & 2 Rotis", detail: "200g extra-firm crumbled tofu sautéed with spices + 2 multigrain rotis", p: 36, cal: 460, c: 42, f: 14 }
+      ],
+      3: [
+        { id: "d3m1", title: "Breakfast: Spicy Egg White Bhurji & Roti", detail: "1 whole egg + 3/4 cup egg whites + 1 whole-wheat phulka", p: 35, cal: 390, c: 30, f: 9 },
+        { id: "d3m2", title: "Mid-Morning: Whey Protein Shake", detail: "1 Scoop Whey Protein Powder", p: 25, cal: 120, c: 2, f: 2 },
+        { id: "d3m3", title: "Lunch: Lean Chicken Keema Wrap", detail: "150g spiced chicken keema inside a whole-wheat roti with mint chutney", p: 44, cal: 490, c: 42, f: 11 },
+        { id: "d3m4", title: "Evening Snack: Roasted Chana & Almonds", detail: "1/2 cup roasted chana + 10 almonds", p: 12, cal: 190, c: 20, f: 9 },
+        { id: "d3m5", title: "Dinner: South Indian Chicken Pepper Fry", detail: "160g chicken breast sautéed with pepper & curry leaves over quinoa", p: 40, cal: 450, c: 38, f: 10 }
+      ],
+      4: [ // Vegetarian Day
+        { id: "d4m1", title: "Breakfast: High-Protein Besan Chilla", detail: "Besan (gram flour) pancakes cooked with onions, chilies & ajwain", p: 24, cal: 380, c: 45, f: 8 },
+        { id: "d4m2", title: "Mid-Morning: Green Protein Smoothie", detail: "1 Scoop Whey + spinach + almond milk + 1/2 banana", p: 28, cal: 210, c: 18, f: 3 },
+        { id: "d4m3", title: "Lunch: Homestyle Rajma & Brown Rice", detail: "1.5 cups boiled kidney beans in tomato curry + brown rice pouch", p: 28, cal: 440, c: 65, f: 6 },
+        { id: "d4m4", title: "Evening Snack: Cottage Cheese / Tofu Cubes", detail: "100g low-fat cottage cheese seasoned with black pepper", p: 18, cal: 140, c: 3, f: 5 },
+        { id: "d4m5", title: "Dinner: Low-Fat Paneer & Green Pea Bhurji", detail: "120g low-fat paneer cooked with green peas & spices + 1 roti", p: 32, cal: 460, c: 38, f: 12 }
+      ],
+      5: [
+        { id: "d5m1", title: "Breakfast: Sprouted Moong Salad & Milk", detail: "1 cup boiled sprouts chaat + 1 glass ultra-filtered milk", p: 32, cal: 400, c: 48, f: 6 },
+        { id: "d5m2", title: "Mid-Morning: Whey Protein Shake", detail: "1 Scoop Whey in cold water", p: 25, cal: 120, c: 2, f: 2 },
+        { id: "d5m3", title: "Lunch: Homestyle Chicken Curry & Quinoa", detail: "150g chicken breast in mild onion curry + quinoa", p: 42, cal: 460, c: 40, f: 11 },
+        { id: "d5m4", title: "Evening Snack: Boiled Egg Whites", detail: "4 egg whites with chaat masala", p: 16, cal: 70, c: 1, f: 0 },
+        { id: "d5m5", title: "Dinner: Lean Turkey / Chicken Keema", detail: "160g minced chicken/turkey with peas + steamed broccoli", p: 45, cal: 480, c: 25, f: 13 }
+      ],
+      6: [
+        { id: "d6m1", title: "Breakfast: Weekend Egg Bhurji & Paratha", detail: "3 eggs scrambled with onions & chilies + 1 plain paratha", p: 34, cal: 450, c: 35, f: 16 },
+        { id: "d6m2", title: "Mid-Morning: Whey Protein Shake", detail: "1 Scoop Whey Protein", p: 25, cal: 120, c: 2, f: 2 },
+        { id: "d6m3", title: "Lunch: Tandoori Chicken Wrap & Salad", detail: "150g shredded tandoori chicken breast in tortilla with onions", p: 42, cal: 480, c: 40, f: 10 },
+        { id: "d6m4", title: "Evening Snack: Low-Fat Paneer / Tofu", detail: "100g Paneer/Tofu sautéed", p: 18, cal: 160, c: 4, f: 7 },
+        { id: "d6m5", title: "Dinner: Low-Fat Paneer & Pepper Stir-Fry", detail: "120g paneer with bell peppers + brown rice", p: 32, cal: 460, c: 42, f: 11 }
+      ],
+      7: [
+        { id: "d7m1", title: "Breakfast: Quick Peanut Butter Oats", detail: "Oats in ultra-filtered milk + 1 scoop whey + 1 tbsp peanut butter", p: 36, cal: 430, c: 45, f: 12 },
+        { id: "d7m2", title: "Mid-Morning: Boiled Egg Whites", detail: "4 egg whites seasoned with pepper", p: 16, cal: 70, c: 1, f: 0 },
+        { id: "d7m3", title: "Lunch: High-Protein Moong Sprouts Chaat", detail: "1.5 cups sprouts with lemon, cucumber & tomatoes", p: 26, cal: 390, c: 55, f: 2 },
+        { id: "d7m4", title: "Evening Snack: Whey Protein Shake", detail: "1 Scoop Whey in water", p: 25, cal: 120, c: 2, f: 2 },
+        { id: "d7m5", title: "Dinner: Sunday Homestyle Chicken Curry", detail: "160g chicken breast in curry base + quinoa pouch", p: 45, cal: 500, c: 40, f: 12 }
+      ]
+    };
+
+    // 5-Day Push/Pull/Legs Workout Routines
+    const workoutRoutines = {
+      push1: [
+        { id: "p1", name: "Dumbbell Bench Press", target: "3 Sets x 8-10 Reps", weight: "14kg" },
+        { id: "p2", name: "Seated DB Shoulder Press", target: "3 Sets x 10-12 Reps", weight: "10kg" },
+        { id: "p3", name: "Triceps Cable Pushdown", target: "3 Sets x 12-15 Reps", weight: "15kg" },
+        { id: "p4", name: "Plank Hold / Core Circuit", target: "3 Sets x 45-60 Secs", weight: "BW" }
+      ],
+      pull1: [
+        { id: "pl1", name: "Lat Pulldown", target: "3 Sets x 8-10 Reps", weight: "35kg" },
+        { id: "pl2", name: "Seated Cable Row", target: "3 Sets x 10-12 Reps", weight: "30kg" },
+        { id: "pl3", name: "Standing DB Bicep Curl", target: "3 Sets x 12-15 Reps", weight: "8kg" },
+        { id: "pl4", name: "12-3-30 Incline Treadmill Walk", target: "15 Mins @ 10% incline, 3.0mph", weight: "Cardio" }
+      ],
+      legs: [
+        { id: "l1", name: "Barbell Back Squat", target: "3 Sets x 6-8 Reps", weight: "20kg" },
+        { id: "l2", name: "Dumbbell Romanian Deadlift", target: "3 Sets x 8-10 Reps", weight: "14kg" },
+        { id: "l3", name: "Dumbbell Goblet Squat", target: "3 Sets x 10-12 Reps", weight: "12kg" }
+      ],
+      push2: [
+        { id: "p2_1", name: "Incline DB Bench Press", target: "3 Sets x 8-10 Reps", weight: "12kg" },
+        { id: "p2_2", name: "DB Lateral Raises", target: "3 Sets x 12-15 Reps", weight: "6kg" },
+        { id: "p2_3", name: "Overhead Cable Triceps Ext", target: "3 Sets x 12 Reps", weight: "12.5kg" },
+        { id: "p2_4", name: "Rowing Machine Intervals", target: "10 Mins (30s hard / 60s slow)", weight: "Cardio" }
+      ],
+      pull2: [
+        { id: "pl2_1", name: "Single-Arm DB Row", target: "3 Sets x 8-10 Reps", weight: "14kg" },
+        { id: "pl2_2", name: "Face Pulls (Rear Delts)", target: "3 Sets x 15 Reps", weight: "15kg" },
+        { id: "pl2_3", name: "Hammer Curls", target: "3 Sets x 12 Reps", weight: "10kg" },
+        { id: "pl2_4", name: "Battle Rope Waves", target: "4 Rounds x 30s Work / 45s Rest", weight: "Cardio" }
+      ]
+    };
+
+    // State Variables
+    let currentDietDay = 1;
+    let currentSplit = 'push1';
+    let loggedMealIds = JSON.parse(localStorage.getItem('desi_loggedMeals') || '[]');
+    let customMeals = JSON.parse(localStorage.getItem('desi_customMeals') || '[]');
+    let progressLogs = JSON.parse(localStorage.getItem('desi_progressLogs') || '[]');
+    let timerInterval = null;
+
+    // Initialization
+    function init() {
+      lucide.createIcons();
+      renderDietList();
+      renderWorkoutList();
+      renderProgressLogs();
+      updateDashboard();
+    }
+
+    // Switch Tabs
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-view').forEach(el => el.classList.add('hidden'));
+      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+      ['dashboard', 'diet', 'workouts', 'progress'].forEach(t => {
+        const navBtn = document.getElementById(`nav-${t}`);
+        if(t === tabId) {
+          navBtn.className = "flex flex-col items-center gap-1 text-emerald-400";
+        } else {
+          navBtn.className = "flex flex-col items-center gap-1 text-slate-400";
+        }
+      });
+    }
+
+    // Diet Functions
+    function setDietDay(day) {
+      currentDietDay = day;
+      for(let i=1; i<=7; i++) {
+        const btn = document.getElementById(`diet-day-${i}`);
+        if(i === day) {
+          btn.className = "px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap bg-emerald-600 text-white";
+        } else {
+          btn.className = "px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-400 border border-slate-700";
+        }
+      }
+      renderDietList();
+    }
+
+    function renderDietList() {
+      const container = document.getElementById('meals-list-container');
+      const baseMeals = indianMealPlans[currentDietDay] || [];
+      const allMeals = [...baseMeals, ...customMeals];
+
+      container.innerHTML = allMeals.map(meal => {
+        const isLogged = loggedMealIds.includes(meal.id);
+        return `
+          <div onclick="toggleMealLog('${meal.id}')" class="glass-card p-3 rounded-2xl border ${isLogged ? 'border-emerald-500/50 bg-emerald-950/20' : 'border-slate-800'} flex justify-between items-center cursor-pointer transition">
+            <div class="pr-2">
+              <h4 class="text-xs font-bold ${isLogged ? 'text-emerald-400 line-through' : 'text-slate-100'}">${meal.title}</h4>
+              <p class="text-[11px] text-slate-400 mt-0.5">${meal.detail}</p>
+              <div class="flex gap-2 mt-1 text-[10px] text-slate-400">
+                <span>🔥 ${meal.cal} kcal</span>
+                <span>💪 ${meal.p}g protein</span>
+              </div>
+            </div>
+            <div class="p-2 rounded-xl ${isLogged ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-500'}">
+              <i data-lucide="${isLogged ? 'check' : 'plus'}" class="w-4 h-4"></i>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+      updateDashboard();
+    }
+
+    function toggleMealLog(mealId) {
+      if(loggedMealIds.includes(mealId)) {
+        loggedMealIds = loggedMealIds.filter(id => id !== mealId);
+      } else {
+        loggedMealIds.push(mealId);
+      }
+      localStorage.setItem('desi_loggedMeals', JSON.stringify(loggedMealIds));
+      renderDietList();
+    }
+
+    // Custom Food Modal
+    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    function addCustomFood() {
+      const name = document.getElementById('custom-name').value;
+      const protein = parseInt(document.getElementById('custom-protein').value) || 0;
+      const calories = parseInt(document.getElementById('custom-cal').value) || 0;
+
+      if(!name) return;
+
+      const newMeal = {
+        id: "c_" + Date.now(),
+        title: `Custom: ${name}`,
+        detail: `Logged custom snack / meal`,
+        p: protein,
+        cal: calories,
+        c: 0,
+        f: 0
+      };
+
+      customMeals.push(newMeal);
+      loggedMealIds.push(newMeal.id);
+      localStorage.setItem('desi_customMeals', JSON.stringify(customMeals));
+      localStorage.setItem('desi_loggedMeals', JSON.stringify(loggedMealIds));
+
+      document.getElementById('custom-name').value = '';
+      document.getElementById('custom-protein').value = '';
+      document.getElementById('custom-cal').value = '';
+
+      closeModal('custom-food-modal');
+      renderDietList();
+    }
+
+    // Dashboard Calculations
+    function updateDashboard() {
+      let totalP = 0;
+      let totalCal = 0;
+
+      const allMeals = [...Object.values(indianMealPlans).flat(), ...customMeals];
+      allMeals.forEach(m => {
+        if(loggedMealIds.includes(m.id)) {
+          totalP += m.p;
+          totalCal += m.cal;
+        }
+      });
+
+      document.getElementById('dash-protein-num').innerText = totalP;
+      document.getElementById('dash-cal-num').innerText = totalCal;
+
+      const pct = Math.min(100, Math.round((totalP / 155) * 100));
+      document.getElementById('dash-protein-bar').style.width = `${pct}%`;
+    }
+
+    // Workout Split Switcher
+    function setWorkoutSplit(splitKey) {
+      currentSplit = splitKey;
+      ['push1', 'pull1', 'legs', 'push2', 'pull2'].forEach(s => {
+        const btn = document.getElementById(`split-${s}`);
+        if(s === splitKey) {
+          btn.className = "px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap bg-blue-600 text-white";
+        } else {
+          btn.className = "px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-400 border border-slate-700";
+        }
+      });
+      renderWorkoutList();
+    }
+
+    function renderWorkoutList() {
+      const container = document.getElementById('workout-container');
+      const exercises = workoutRoutines[currentSplit] || [];
+
+      container.innerHTML = exercises.map(ex => `
+        <div class="glass-card p-3 rounded-2xl border border-slate-800 flex justify-between items-center">
+          <div>
+            <h4 class="text-xs font-bold text-white">${ex.name}</h4>
+            <span class="text-[11px] text-slate-400">${ex.target}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="text" value="${ex.weight}" class="w-16 bg-slate-900 border border-slate-800 text-xs text-center rounded-lg p-1.5 text-blue-400 font-bold focus:outline-none">
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Timer Logic
+    function startTimer(seconds) {
+      clearInterval(timerInterval);
+      let remaining = seconds;
+      updateTimerDisplay(remaining);
+
+      timerInterval = setInterval(() => {
+        remaining--;
+        updateTimerDisplay(remaining);
+        if(remaining <= 0) {
+          clearInterval(timerInterval);
+          alert("Rest Time Up! Get ready for your next set 💪");
+        }
+      }, 1000);
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+      updateTimerDisplay(90);
+    }
+
+    function updateTimerDisplay(sec) {
+      const m = Math.floor(sec / 60).toString().padStart(2, '0');
+      const s = (sec % 60).toString().padStart(2, '0');
+      document.getElementById('timer-display').innerText = `${m}:${s}`;
+    }
+
+    // Progress Logging
+    function saveProgressEntry() {
+      const w = document.getElementById('input-weight').value;
+      const c = document.getElementById('input-cardio').value;
+      if(!w && !c) return;
+
+      const entry = {
+        date: new Date().toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
+        weight: w || '--',
+        cardio: c || '0'
+      };
+
+      progressLogs.unshift(entry);
+      localStorage.setItem('desi_progressLogs', JSON.stringify(progressLogs));
+
+      document.getElementById('input-weight').value = '';
+      document.getElementById('input-cardio').value = '';
+      renderProgressLogs();
+    }
+
+    function renderProgressLogs() {
+      const container = document.getElementById('progress-history');
+      if(progressLogs.length === 0) {
+        container.innerHTML = `<p class="text-slate-500 italic text-[11px]">No metrics logged yet.</p>`;
+        return;
+      }
+
+      container.innerHTML = progressLogs.map(log => `
+        <div class="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center text-slate-300">
+          <span>📅 ${log.date}</span>
+          <span>⚖️ ${log.weight} kg</span>
+          <span>🏃 ${log.cardio} mins cardio</span>
+        </div>
+      `).join('');
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
